@@ -13,6 +13,8 @@ wheels/
 
 /logs
 
+/output
+
 .python-version
 
 uv.lock

@@ -203,3 +203,103 @@ def save_to_excel(report_list, year):
         
     except Exception as e:
         logger.error(f"Excel generation failed: {e}")
+
+def append_mobialert_to_excel(excel_path, mobialert_rows):
+    """
+    Appends MobiAlert failure rows to an existing Excel file produced by
+    save_to_excel().  Adds a section header (merged, dark-blue) followed by
+    column headers and data rows.
+
+    Parameters
+    ----------
+    excel_path     : str  – path to the xlsx file to modify
+    mobialert_rows : list – list of dicts with keys CONFIGID, CONFIGNAME,
+                            EMAILMESSAGE (as returned by test.get_mobialert_failures)
+
+    Returns the same excel_path on success, None on failure.
+    """
+    if not mobialert_rows:
+        logger.info("No MobiAlert failures to append – skipping section.")
+        return excel_path
+
+    try:
+        wb = openpyxl.load_workbook(excel_path)
+        ws = wb.active
+
+        # ── Styles ────────────────────────────────────────────────────────────
+        section_font  = Font(size=13, bold=True, color="FFFFFF")
+        section_fill  = PatternFill(start_color="1F4E79", end_color="1F4E79",
+                                    fill_type="solid")   # dark navy-blue
+        header_font   = Font(bold=True, color="FFFFFF")
+        header_fill   = PatternFill(start_color="2E75B6", end_color="2E75B6",
+                                    fill_type="solid")   # medium blue
+        center_align  = Alignment(horizontal="center", vertical="center")
+        left_align    = Alignment(horizontal="left",   vertical="center")
+        thin_border   = Border(
+            left=Side(style='thin'), right=Side(style='thin'),
+            top=Side(style='thin'),  bottom=Side(style='thin')
+        )
+
+        # ── Find the next empty row (leave one blank row as spacer) ───────────
+        next_row = ws.max_row + 2          # +1 blank spacer, +1 for actual start
+
+        # ── Section title row ─────────────────────────────────────────────────
+        ws.merge_cells(
+            start_row=next_row, start_column=1,
+            end_row=next_row,   end_column=3
+        )
+        title_cell = ws.cell(row=next_row, column=1,
+                             value="MobiAlert – Failed to Send (Yesterday & Today)")
+        title_cell.font      = section_font
+        title_cell.fill      = section_fill
+        title_cell.alignment = center_align
+        next_row += 1
+
+        # ── Column headers ────────────────────────────────────────────────────
+        mob_headers = ["Config ID", "Config Name", "Email Message"]
+        for col_idx, header in enumerate(mob_headers, 1):
+            cell = ws.cell(row=next_row, column=col_idx, value=header)
+            cell.font      = header_font
+            cell.fill      = header_fill
+            cell.alignment = center_align
+            cell.border    = thin_border
+        next_row += 1
+
+        # ── Data rows ─────────────────────────────────────────────────────────
+        for record in mobialert_rows:
+            values = [
+                record.get("CONFIGID"),
+                record.get("CONFIGNAME"),
+                record.get("EMAILMESSAGE"),
+            ]
+            for col_idx, val in enumerate(values, 1):
+                cell = ws.cell(row=next_row, column=col_idx, value=val)
+                cell.alignment = left_align
+                cell.border    = thin_border
+            next_row += 1
+
+        # ── Auto-width for the 3 MobiAlert columns (cols 1-3) ─────────────────
+        # We re-scan only the rows we just wrote plus headers to avoid
+        # fighting with the merged cells already in the sheet.
+        mob_start_row = ws.max_row - len(mobialert_rows) - 1  # header + data
+        for col_idx in range(1, 4):
+            max_len = len(mob_headers[col_idx - 1])
+            for row_idx in range(mob_start_row, ws.max_row + 1):
+                val = ws.cell(row=row_idx, column=col_idx).value
+                if val:
+                    max_len = max(max_len, len(str(val)))
+            col_letter = get_column_letter(col_idx)
+            current_width = ws.column_dimensions[col_letter].width or 0
+            ws.column_dimensions[col_letter].width = max(
+                current_width, min(max_len + 2, 80)
+            )
+
+        wb.save(excel_path)
+        logger.info(
+            f"Appended {len(mobialert_rows)} MobiAlert row(s) to {excel_path}"
+        )
+        return excel_path
+
+    except Exception as e:
+        logger.error(f"Failed to append MobiAlert data to Excel: {e}")
+        return None

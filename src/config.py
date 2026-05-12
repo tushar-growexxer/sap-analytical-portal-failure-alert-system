@@ -33,6 +33,12 @@ LOG_FILE_PATH = os.path.join(LOG_DIRECTORY, "logs.txt")
 # Report Configuration
 REPORT_FILENAME_PREFIX = "failed_reports"
 
+# SAP HANA (MobiAlert) Connection
+HANA_ADDRESS  = os.getenv("HANA_ADDRESS")
+HANA_PORT     = int(os.getenv("HANA_PORT", 30015))
+HANA_USER     = os.getenv("HANA_USER")
+HANA_PASSWORD = os.getenv("HANA_PASSWORD")
+
 # Email Configuration
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
