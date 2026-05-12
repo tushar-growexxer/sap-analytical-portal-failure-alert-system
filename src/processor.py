@@ -303,3 +303,56 @@ def append_mobialert_to_excel(excel_path, mobialert_rows):
     except Exception as e:
         logger.error(f"Failed to append MobiAlert data to Excel: {e}")
         return None
+
+def handle_mobialert_failures(generated_file_path):
+    """
+    Handles fetching MobiAlert failures and appending them to the Excel file.
+    If no portal failures but MobiAlert failures exist, creates a stub Excel.
+    """
+    import sys
+    import os
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    import test
+    
+    logger.info("Querying MobiAlert failures from SAP HANA...")
+    mobialert_rows = test.get_mobialert_failures()
+
+    if mobialert_rows:
+        logger.info(f"Found {len(mobialert_rows)} MobiAlert failure(s).")
+    else:
+        logger.info("No MobiAlert failures found for yesterday.")
+
+    if generated_file_path and os.path.exists(generated_file_path):
+        generated_file_path = append_mobialert_to_excel(
+            generated_file_path, mobialert_rows
+        )
+    elif mobialert_rows:
+        # Analytical portal is healthy but there ARE MobiAlert failures –
+        # create an Excel with only the MobiAlert section.
+        logger.info(
+            "No portal failures found, but MobiAlert has failures. "
+            "Creating Excel with MobiAlert section only."
+        )
+        # Build a minimal stub Excel so append_mobialert_to_excel has somewhere to write
+        timestamp = datetime.now().strftime("%d-%m-%Y %I-%M-%p")
+        output_dir = getattr(config, 'OUTPUT_DIRECTORY', '.')
+        os.makedirs(output_dir, exist_ok=True)
+        prefix = getattr(config, 'REPORT_FILENAME_PREFIX', 'failed_reports')
+        stub_path = os.path.join(output_dir, f"{prefix}_{timestamp}.xlsx")
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Failed Reports"
+        ws.merge_cells('A1:F1')
+        c = ws['A1']
+        c.value = f"{datetime.now().year}'s Schedule Not Sent by Email"
+        c.font = Font(size=14, bold=True)
+        c.alignment = Alignment(horizontal="center", vertical="center")
+
+        ws.merge_cells('A2:F2')
+        ws['A2'].value = "ℹ️ Analytical Portal: No failures found. See MobiAlert section below."
+        wb.save(stub_path)
+
+        generated_file_path = append_mobialert_to_excel(stub_path, mobialert_rows)
+
+    return generated_file_path
