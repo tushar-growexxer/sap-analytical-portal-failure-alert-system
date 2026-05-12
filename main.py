@@ -1,7 +1,7 @@
 import json
 import os
 from src.auth import perform_login
-from src.processor import process_and_save_data
+from src.processor import process_and_save_data, append_mobialert_to_excel, handle_mobialert_failures
 from src.email_sender import send_report_email
 from src import config
 from src.utils import setup_logger
@@ -18,7 +18,7 @@ def main():
         logger.critical("Authentication failed. Aborting.")
         return
 
-    # 2. Fetch Data
+    # 2. Fetch Analytical Portal Data
     logger.info(f"GET {config.TARGET_API}")
     api_headers = {
         'X-CSRF-TOKEN': csrf_token, 
@@ -33,11 +33,13 @@ def main():
             
             raw_data = history_response.json()
 
-            # 3. Process Data and Get File Path
-            # This function now returns the path to the generated Excel file (or None)
+            # 3. Process Analytical Portal Data → Excel
             generated_file_path = process_and_save_data(raw_data)
 
-            # 4. Send Email (Only if a file was generated)
+            # 4. Fetch MobiAlert failures from SAP HANA and append to the same Excel
+            generated_file_path = handle_mobialert_failures(generated_file_path)
+
+            # # 5. Send Email (only if a file was generated)
             if generated_file_path and os.path.exists(generated_file_path):
                 logger.info(f"Report generated at {generated_file_path}. Sending email...")
                 
@@ -48,7 +50,7 @@ def main():
                 else:
                     logger.error("Email sending failed.")
             else:
-                logger.info("No report generated (System Healthy), skipping email.")
+                logger.info("No failures found in either system – all healthy. Skipping email.")
 
         else:
             logger.error(f"Failed to fetch history. Status: {history_response.status_code}")
