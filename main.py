@@ -40,17 +40,17 @@ def main():
             generated_file_path = handle_mobialert_failures(generated_file_path)
 
             # # 5. Send Email (only if a file was generated)
-            # if generated_file_path and os.path.exists(generated_file_path):
-            #     logger.info(f"Report generated at {generated_file_path}. Sending email...")
+            if generated_file_path and os.path.exists(generated_file_path):
+                logger.info(f"Report generated at {generated_file_path}. Sending email...")
                 
-            #     email_status = send_report_email(generated_file_path)
+                email_status = send_report_email(generated_file_path)
                 
-            #     if email_status:
-            #         logger.info("Email sent successfully.")
-            #     else:
-            #         logger.error("Email sending failed.")
-            # else:
-            #     logger.info("No failures found in either system – all healthy. Skipping email.")
+                if email_status:
+                    logger.info("Email sent successfully.")
+                else:
+                    logger.error("Email sending failed.")
+            else:
+                logger.info("No failures found in either system – all healthy. Skipping email.")
 
         else:
             logger.error(f"Failed to fetch history. Status: {history_response.status_code}")
