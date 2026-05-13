@@ -39,7 +39,7 @@ def main():
             # 4. Fetch MobiAlert failures from SAP HANA and append to the same Excel
             generated_file_path = handle_mobialert_failures(generated_file_path)
 
-            # # 5. Send Email (only if a file was generated)
+            # 5. Send Email (only if a file was generated)
             if generated_file_path and os.path.exists(generated_file_path):
                 logger.info(f"Report generated at {generated_file_path}. Sending email...")
                 
