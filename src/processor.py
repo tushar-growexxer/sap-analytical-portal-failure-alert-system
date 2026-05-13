@@ -244,9 +244,18 @@ def append_mobialert_to_excel(excel_path, mobialert_rows):
         next_row = ws.max_row + 2          # +1 blank spacer, +1 for actual start
 
         # ── Section title row ─────────────────────────────────────────────────
+        mob_headers = [
+            "Config ID", "Object ID", "Document Code", "Type",
+            "User Code", "Config Name", "Email Message"
+        ]
+        mob_fields = [
+            "CONFIGID", "OBJECTID", "DOCUMENTCODE", "TYPE",
+            "USERCODE", "CONFIGNAME", "EMAILMESSAGE"
+        ]
+
         ws.merge_cells(
             start_row=next_row, start_column=1,
-            end_row=next_row,   end_column=3
+            end_row=next_row,   end_column=len(mob_headers)
         )
         title_cell = ws.cell(row=next_row, column=1,
                              value="MobiAlert – Failed to Send (Yesterday & Today)")
@@ -256,7 +265,6 @@ def append_mobialert_to_excel(excel_path, mobialert_rows):
         next_row += 1
 
         # ── Column headers ────────────────────────────────────────────────────
-        mob_headers = ["Config ID", "Config Name", "Email Message"]
         for col_idx, header in enumerate(mob_headers, 1):
             cell = ws.cell(row=next_row, column=col_idx, value=header)
             cell.font      = header_font
@@ -267,22 +275,16 @@ def append_mobialert_to_excel(excel_path, mobialert_rows):
 
         # ── Data rows ─────────────────────────────────────────────────────────
         for record in mobialert_rows:
-            values = [
-                record.get("CONFIGID"),
-                record.get("CONFIGNAME"),
-                record.get("EMAILMESSAGE"),
-            ]
+            values = [record.get(field) for field in mob_fields]
             for col_idx, val in enumerate(values, 1):
                 cell = ws.cell(row=next_row, column=col_idx, value=val)
                 cell.alignment = left_align
                 cell.border    = thin_border
             next_row += 1
 
-        # ── Auto-width for the 3 MobiAlert columns (cols 1-3) ─────────────────
-        # We re-scan only the rows we just wrote plus headers to avoid
-        # fighting with the merged cells already in the sheet.
+        # ── Auto-width for the MobiAlert columns ───────────────────────────────
         mob_start_row = ws.max_row - len(mobialert_rows) - 1  # header + data
-        for col_idx in range(1, 4):
+        for col_idx in range(1, len(mob_headers) + 1):
             max_len = len(mob_headers[col_idx - 1])
             for row_idx in range(mob_start_row, ws.max_row + 1):
                 val = ws.cell(row=row_idx, column=col_idx).value
@@ -343,13 +345,13 @@ def handle_mobialert_failures(generated_file_path):
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Failed Reports"
-        ws.merge_cells('A1:F1')
+        ws.merge_cells('A1:G1')
         c = ws['A1']
         c.value = f"{datetime.now().year}'s Schedule Not Sent by Email"
         c.font = Font(size=14, bold=True)
         c.alignment = Alignment(horizontal="center", vertical="center")
 
-        ws.merge_cells('A2:F2')
+        ws.merge_cells('A2:G2')
         ws['A2'].value = "ℹ️ Analytical Portal: No failures found. See MobiAlert section below."
         wb.save(stub_path)
 

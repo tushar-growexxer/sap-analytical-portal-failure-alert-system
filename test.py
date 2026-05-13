@@ -11,7 +11,8 @@ def get_mobialert_failures():
     Connects to SAP HANA and fetches MobiAlert reports that failed to send
     (i.e., have a non-null EMAILMESSAGE and were scheduled for yesterday).
 
-    Returns a list of dicts with keys: CONFIGID, CONFIGNAME, EMAILMESSAGE
+    Returns a list of dicts with keys: CONFIGID, OBJECTID, DOCUMENTCODE,
+    TYPE, USERCODE, CONFIGNAME, EMAILMESSAGE.
     Returns an empty list on error or no results.
     """
     conn = None
@@ -28,7 +29,7 @@ def get_mobialert_failures():
         cursor.execute('SET SCHEMA MOBIALERT')
 
         query = """
-            SELECT t0."CONFIGID", t1."CONFIGNAME", t0."EMAILMESSAGE"
+            SELECT t0."CONFIGID",T0."OBJECTID", T0."DOCUMENTCODE", T0."TYPE", T0."USERCODE", t1."CONFIGNAME", t0."EMAILMESSAGE"
             FROM CNFG1_LOG t0
             JOIN OCNFG t1 ON t1."CONFIGID" = t0."CONFIGID"
             WHERE DAYS_BETWEEN(
@@ -45,9 +46,13 @@ def get_mobialert_failures():
         results = []
         for row in rows:
             results.append({
-                "CONFIGID":    row[0],
-                "CONFIGNAME":  row[1],
-                "EMAILMESSAGE": row[2],
+                "CONFIGID":     row[0],
+                "OBJECTID":     row[1],
+                "DOCUMENTCODE": row[2],
+                "TYPE":         row[3],
+                "USERCODE":     row[4],
+                "CONFIGNAME":   row[5],
+                "EMAILMESSAGE": row[6],
             })
 
         return results
