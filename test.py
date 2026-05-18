@@ -37,7 +37,7 @@ def get_mobialert_failures():
                     CURRENT_DATE
                   ) <= 1
             AND t0."EMAILMESSAGE" IS NOT NULL
-            and t0."EMAILMESSAGE" not like 'No Records Found in RPT file%'
+            and t0."EMAILMESSAGE" not like 'No Records Found%'
             ORDER BY t0."ALERTID" DESC
         """
         cursor.execute(query)
